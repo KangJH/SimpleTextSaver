@@ -22,8 +22,8 @@ public class AccountDataController extends Object implements Serializable {
 	private ArrayList<AccountChunk> mAccountChunks = null;
 	private File					mShareFile = null;
 	private final String SHARE_FOLDER_NAME = Environment.
-            getExternalStorageDirectory()+"AccountBook";
-	private final String SHARE_FILE_NAME = "my_accout.txt";
+            getExternalStorageDirectory()+"/Android/data/com.dropbox.android/files/scratch/Accountbook";
+	private final String SHARE_FILE_NAME = "my_account.txt";
 	private final String TAG = "AccountDataController";
 	private static AccountDataController mMyInstance = null; 
 	static public AccountDataController getInstance() {
@@ -35,7 +35,7 @@ public class AccountDataController extends Object implements Serializable {
 	private AccountDataController() {
 		mAccountChunks = new ArrayList<AccountChunk>();
 		File dir = makeDirectory(SHARE_FOLDER_NAME);
-		mShareFile = makeFile(dir, (SHARE_FOLDER_NAME + SHARE_FILE_NAME));
+		mShareFile = makeFile(dir, (SHARE_FOLDER_NAME + "/" + SHARE_FILE_NAME));
 	}
 	
 	public ArrayList<AccountChunk> getAccountChunks() {
@@ -105,24 +105,27 @@ public class AccountDataController extends Object implements Serializable {
 		}
 		save();
 	}
-	
+	public void close() {
+		if(mAccountChunks != null) {
+			mAccountChunks = null;
+		}
+		mMyInstance = null;
+	}
 	public boolean save() {
 		boolean ret = false;
 		if(mAccountChunks != null) {
+			if(!isFileExist(mShareFile)) {
+				File dir = makeDirectory(SHARE_FOLDER_NAME);
+				mShareFile = makeFile(dir, (SHARE_FOLDER_NAME + "/" + SHARE_FILE_NAME));
+			}
+			String buffer = new String();
 			if(mAccountChunks.size() > 0) {
-				if(!isFileExist(mShareFile)) {
-					File dir = makeDirectory(SHARE_FOLDER_NAME);
-					mShareFile = makeFile(dir, (SHARE_FOLDER_NAME + SHARE_FILE_NAME));
-				}
-				String buffer = new String();
 				for(AccountChunk obj : mAccountChunks) {
-					String oneLine = obj.strContent + "/" + obj.strExpense + "/" + obj.strDate + "/" + obj.strTimeByMilliSec + "\n";
+					String oneLine = obj.strContent + "/" + obj.strExpense + "/" + obj.strDate + "/" + obj.strTimeByMilliSec + "\r\n";
 					buffer += oneLine;
 				}
-				ret = writeFile(mShareFile, buffer.getBytes());
-			} else {
-				ret = deleteFile(mShareFile);
-			}
+			} 
+			ret = writeFile(mShareFile, buffer.getBytes());
 		}
 		return ret;
 	}
@@ -132,16 +135,18 @@ public class AccountDataController extends Object implements Serializable {
 			byte[] buffer = readFile(mShareFile);
 			if(buffer != null) {
 				String strBuffer = new String(buffer);
-				StringTokenizer tokens_lf = new StringTokenizer(strBuffer, "\n");
+				StringTokenizer tokens_lf = new StringTokenizer(strBuffer, "\r\n");
 				while(tokens_lf.hasMoreTokens()) {
 					String oneLine = tokens_lf.nextToken();
-					StringTokenizer tokens_slash = new StringTokenizer(oneLine, "/");
-					AccountChunk newChunk = new AccountChunk();
-					newChunk.strContent = tokens_slash.nextToken();
-					newChunk.strExpense = tokens_slash.nextToken();
-					newChunk.strDate = tokens_slash.nextToken();
-					newChunk.strTimeByMilliSec = tokens_slash.nextToken();
-					mAccountChunks.add(newChunk);
+					if(oneLine.length() > 1 ) {
+						StringTokenizer tokens_slash = new StringTokenizer(oneLine, "/");
+						AccountChunk newChunk = new AccountChunk();
+						newChunk.strContent = tokens_slash.nextToken();
+						newChunk.strExpense = tokens_slash.nextToken();
+						newChunk.strDate = tokens_slash.nextToken();
+						newChunk.strTimeByMilliSec = tokens_slash.nextToken();
+						mAccountChunks.add(newChunk);
+					}
 				}
 			}
 		}
@@ -325,8 +330,8 @@ public class AccountDataController extends Object implements Serializable {
             try {
                 FileInputStream fis = new FileInputStream(file);
                 readcount = (int)file.length();
-                byte[] buffer = new byte[readcount];
-                fis.read(buffer);
+                ret = new byte[readcount];
+                fis.read(ret);
                 fis.close();
             } catch (Exception e) {
                 e.printStackTrace();

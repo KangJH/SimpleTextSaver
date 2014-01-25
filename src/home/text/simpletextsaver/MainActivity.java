@@ -47,10 +47,19 @@ public class MainActivity extends Activity implements OnClickListener {
 				if(s.length() > 0) {
 					if(!s.toString().equals(mExpenseText)) {
 						mExpense.removeTextChangedListener(this);
-						String formated = NumberFormat.getCurrencyInstance().format(getNumbericFromCurrency(s.toString()));
-						mExpenseText = formated;
-						mExpense.setText(formated);
-						mExpense.setSelection(formated.length());
+						long currVal = getNumbericFromCurrency(s.toString());
+						if(currVal > 0) {
+							String formated = NumberFormat.getCurrencyInstance().format(currVal);
+							mExpenseText = formated;
+						} else {
+							if(s.toString().equals(won_mark)) {
+								mExpenseText = "";
+							} else {
+								mExpenseText = s.toString();
+							}
+						}
+						mExpense.setText(mExpenseText);
+						mExpense.setSelection(mExpenseText.length());
 	
 						mExpense.addTextChangedListener(this);
 					}
@@ -77,7 +86,14 @@ public class MainActivity extends Activity implements OnClickListener {
 		mAccountDataController = AccountDataController.getInstance();
 		mAccountDataController.load();
 	}
-
+	
+	public void onDestroy() {
+		super.onDestroy();
+		if(mAccountDataController != null) {
+			mAccountDataController.close();
+			mAccountDataController = null;
+		}
+	}
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -152,7 +168,9 @@ public class MainActivity extends Activity implements OnClickListener {
 		long ret = 0;
 		if(input != null && input.length() > 0) {
 			String cleanString = input.replaceAll("["+won_mark+",]", "");
-			ret = Long.parseLong(cleanString);
+			if(cleanString.length() > 0) {
+				ret = Long.parseLong(cleanString);
+			}
 		}
 		return ret;
 	}
